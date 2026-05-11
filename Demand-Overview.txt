@@ -1,0 +1,52 @@
+
+这是 chunk 技术实践的实验平台
+基本职能是：
+1.文件上传(cli_fileUpload)：使用 `shell cli` 命令行方式指定一个文件先进行上传（目标 minio \test\时间戳\）
+		文件上传后需要登录t_document信息
+2.文件 chunk 处理：每个py类实现一种 chunk 技术实践
+以下技术实践：
+2.1 传统切分(cli_chunk_RCTS)（eg: from langchain.text_splitter import RecursiveCharacterTextSplitter）
+	切分完后将切分文本与该文本对应的向量保存数据库表 chunkTable
+2.2 语义切分(cli_chunk_SC) (eg: text_splitter = SemanticChunker(
+			embeddings=self.embedding_service.embeddings, 
+			breakpoint_threshold_type="percentile", 
+			sentence_split_regex=split_regex, 
+			min_chunk_size=min_chunk_size,
+			add_start_index=True
+		))
+2.3 后置切块(cli_chunk_JE) (eg: 在 LangChain 中，通过 JinaEmbeddings 类配合特定的 pooling 策略实现)
+
+
+t_document(id,filename,szie,etag,path等文件基本信息)
+t_chunk(id,docId,content,chunk,chunkall)
+
+
+程序需要使用Shell CLI方式启动（\src\main.py）
+参照 `C:\WorkProject\ai-agent\work-project\MCPServers-02\websocket-connect-project\src\shell\main.py` 中的 `lambda_websocket_connect` 的类似实现
+
+
+需要使用的组件
+# for cli
+click==8.3.0
+
+
+
+
+## Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Runtime** | Python 3.8+ |
+| **Package Manager** | uv |
+| **Database** | PostgreSQL 16+ with pgvector |
+| **ORM** | SQLAlchemy 2.0+ |
+| **Message Queue** | Amazon SQS |
+| **Object Storage** | Amazon S3 / MinIO |
+| **Authentication** | AWS Cognito |
+| **Compute** | AWS Lambda (Python & Container) |
+| **API Gateway** | Amazon API Gateway (HTTP & WebSocket) |
+| **Document Conversion** | LibreOffice |
+| **Code Quality** | ruff |
+| **Testing** | pytest |
+
+

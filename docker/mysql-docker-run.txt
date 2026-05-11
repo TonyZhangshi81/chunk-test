@@ -1,0 +1,9 @@
+docker run -d `
+--name mysql `
+-p 3307:3306 `
+-e MYSQL_ROOT_PASSWORD=Tony19811031 `
+-e MYSQL_DATABASE=myapp `
+-e MYSQL_USER=tony `
+-e MYSQL_PASSWORD=Tony19811031 `
+-v C:\WorkProject\ai-agent\investigation\chunk-test\docker\mysql_data:/var/lib/mysql `
+mysql:8.0

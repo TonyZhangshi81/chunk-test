@@ -1,0 +1,7 @@
+# exclude docker and venv folder
+
+docker/minio_data
+docker/mysql_data
+docker/postgres_data
+
+venv/

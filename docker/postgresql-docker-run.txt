@@ -1,0 +1,13 @@
+docker run -d `
+--name postgres `
+-p 15432:5432 `
+-e POSTGRES_USER=tony `
+-e POSTGRES_PASSWORD=Tony19811031 `
+-e POSTGRES_DB=myapp `
+-v C:\WorkProject\ai-agent\investigation\chunk-test\docker\postgres_data:/var/lib/postgresql/data `
+pgvector/pgvector:pg16
+
+
+docker exec -it postgres psql -U tony -d myapp
+CREATE EXTENSION IF NOT EXISTS vector;
+SELECT * FROM pg_extension WHERE extname = 'vector';
