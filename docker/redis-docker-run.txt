@@ -1,0 +1,11 @@
+
+# redis 镜像：
+
+docker run -d `
+--name redis `
+-p 6379:6379 `
+-v C:\docker\redis_data:/data `
+redis:latest `
+redis-server --requirepass MyStrongPassword123 --appendonly yes
+
+

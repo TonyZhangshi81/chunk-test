@@ -1,10 +1,22 @@
+构建一个 chunk 策略的离线评估与对比实验平台
+在相同文件、相同 embedding、相同检索流程的前提下，对比不同 chunk 策略对 RAG 系统命中率（回答质量）的影响，并给出一个 可量化的策略评分（0～10分）。
 
-这是 chunk 技术实践的实验平台
+
+
+这是 chunk 技术实践的实验平台，其目的是验证或者考量对同一个资源文件在使用不同的 chunk 处理策略时，通过一致的 embedding 和检索后，
+对能否达到 ARG 系统的高命中的要求，起到一个指标性的考量。
+
+比如通过以下操作：
+1. 通过 `cli_fileUpload` 上传资源文件；
+2. 对已经上传的文件分别执行不同的chunk技术实践类型（cli_chunk_RCTS、cli_chunk_SC、cli_chunk_JE），比如：调用 cli_chunk_SC 
+3. 通过 `cli_search` 获取大模型的回答（经过向量查询）
+4. 上述操作完成后需要一个指标，来验证策略优劣或者为该策略打分（0~10分），这部分内容你的智慧，提出你的策略解决方案。
+
+
 基本职能是：
-1.文件上传(cli_fileUpload)：使用 `shell cli` 命令行方式指定一个文件先进行上传（目标 minio \test\时间戳\）
-		文件上传后需要登录t_document信息
-2.文件 chunk 处理：每个py类实现一种 chunk 技术实践
-以下技术实践：
+1. 文件上传(cli_fileUpload)：使用 `shell cli` 命令行方式指定一个文件先进行上传（目标 minio \test\uuid\）
+2. 文件 chunk 处理：每个py类实现一种 chunk 技术实践类型
+以下技术实践类型：
 2.1 传统切分(cli_chunk_RCTS)（eg: from langchain.text_splitter import RecursiveCharacterTextSplitter）
 	切分完后将切分文本与该文本对应的向量保存数据库表 chunkTable
 2.2 语义切分(cli_chunk_SC) (eg: text_splitter = SemanticChunker(
@@ -15,10 +27,38 @@
 			add_start_index=True
 		))
 2.3 后置切块(cli_chunk_JE) (eg: 在 LangChain 中，通过 JinaEmbeddings 类配合特定的 pooling 策略实现)
+3. 信息检索(cli_search)：指定检索信息、技术实践类型内向量数据做检索查询，并将查询结果投喂大模型，最终将大模型回答返回
 
+表结构定义（拟定）:
 
-t_document(id,filename,szie,etag,path等文件基本信息)
-t_chunk(id,docId,content,chunk,chunkall)
+t_document(
+	id Column(String(50)),  # 文档ID (uuid)
+	file_name Column(String(1024), nullable=False),  # 文件名（带扩展名）
+	file_size Column(BigInteger),  # 文件大小
+	file_etag Column(String(255)),
+	file_type Column(String(100)),
+	mime_type Column(String(100)),
+	markdown_buffer
+	description = Column(Text)
+	);
+
+t_chunk(
+	id Column(String(50)),  # chunkID (uuid)
+	document_id Column(String(50)),  # 文档ID (uuid)
+	chunk_type,	# 标明是哪种策略（RCTS / SC / JE）
+	raw_content, 	# 原始切分结果
+	content,    # 可后处理的文本（当前阶段可等于 raw_content）
+	chunk_index,	# 块在文档中的顺序
+	start_position, # 在原文件中的字符偏移-开始位置
+	end_position,	# 在原文件中的字符偏移-结束位置
+	embedding_model = Column(String(255)),  # Track which model generated this embedding
+	embedding_1536 = Column(Vector(1536)),  # Stored as for titan-v1, ada, openai-small
+	embedding_1024 = Column(Vector(1024)),  # Stored as titan-v2-1024
+	embedding_512 = Column(Vector(512)),  # Stored as for titan-v2-512
+	embedding_256 = Column(Vector(256)),  # Stored as titan-v2-256
+	embedding_3072 = Column(Vector(3072)),  # Stored as openai-large
+	)
+
 
 
 程序需要使用Shell CLI方式启动（\src\main.py）
