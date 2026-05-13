@@ -4,4 +4,10 @@ docker/minio_data
 docker/mysql_data
 docker/postgres_data
 
-venv/
+.venv/
+src/__pycache__/
+src/models/__pycache__/
+src/repositories/__pycache__/
+src/services/__pycache__/
+src/services/chunk_strategies/__pycache__/
+src/utils/__pycache__/
