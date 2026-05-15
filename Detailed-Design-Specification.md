@@ -3,10 +3,11 @@
 
 ## 1. 项目目标
 
-构建CLI实验平台，对比三种文本切分策略对RAG系统检索质量的影响。
+构建 CLI 实验平台，对比三种文本切分策略对 RAG 系统检索质量的影响。
 
-**控制变量**：相同文件、相同Embedding模型、相同检索流程
-**实验变量**：Chunk策略类型
+控制变量：相同文件、相同检索与评估流程、相同 LLM 配置
+
+实验变量：Chunk 策略类型，以及策略所依赖的 embedding 管线
 
 ## 2. 技术栈
 
@@ -29,6 +30,8 @@
 
 ## 4. 环境变量配置（.env）
 
+程序启动时会按顺序加载仓库根目录 `.env` 和 `src/.env`，后加载的值会覆盖前者。
+
 ```bash
 # 数据库
 DB_HOST=localhost
@@ -45,26 +48,27 @@ MINIO_BUCKET=rag-chunks
 MINIO_SECURE=False
 MINIO_PATH_PATTERN=test/{uuid}/{filename}
 
-# Embedding（用于RCTS和SC策略）
-EMBEDDING_MODEL=text-embedding-ada-002
-EMBEDDING_API_TYPE=openai
+# Embedding（用于 RCTS 和 SC 策略）
+EMBEDDING_PROVIDER=zhipu
+EMBEDDING_MODEL=embedding-3
+EMBEDDING_API_TYPE=zhipu
 EMBEDDING_API_KEY=your_key
-EMBEDDING_API_BASE=https://api.openai.com/v1
-EMBEDDING_DIMENSION=1536
+EMBEDDING_API_BASE=https://open.bigmodel.cn/api/paas/v4
+EMBEDDING_DIMENSION=1024
 
-# Jina API（用于JE策略）
+# Jina API（用于 JE 策略）
 JINA_API_KEY=jina_xxxxx
 JINA_API_BASE=https://api.jina.ai/v1
-JINA_MODEL=jina-embeddings-v2-base
+JINA_MODEL=jina-embeddings-v2-base-zh
 JINA_EMBEDDING_DIMENSION=768
 JINA_POOLING_STRATEGY=mean
 JINA_CHUNK_TYPE=paragraph
 
 # LLM
-LLM_API_TYPE=zhipu
-LLM_MODEL=glm-4
+LLM_API_TYPE=Qwen
+LLM_MODEL=Qwen/Qwen2.5-72B-Instruct
 LLM_API_KEY=your_key
-LLM_API_BASE=https://open.bigmodel.cn/api/paas/v4
+LLM_API_BASE=https://api.siliconflow.cn/v1
 LLM_TEMPERATURE=0.7
 
 # Chunk参数
@@ -105,6 +109,7 @@ CREATE TABLE t_chunk (
     start_position INTEGER,
     end_position INTEGER,
     embedding_model VARCHAR(255),
+    embedding_2048 VECTOR(2048),
     embedding_1536 VECTOR(1536),
     embedding_1024 VECTOR(1024),
     embedding_768 VECTOR(768),
@@ -281,9 +286,12 @@ class JEStrategy(BaseChunkStrategy):
     @property
     def strategy_type(self) -> str:
         return "JE"
+
+    @property
+    def embedding_model(self) -> str:
+        return self.model
     
     def _get_embeddings(self, document: str) -> list[dict]:
-        """调用 Jina API，直接返回语义切分后的 chunks"""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -303,27 +311,53 @@ class JEStrategy(BaseChunkStrategy):
         )
         response.raise_for_status()
         result = response.json()
+        response_items = result.get("data", [])
         chunks = []
-        for data in result.get("data", []):
-            if not data.get("text", "").strip():
+        for data in response_items:
+            chunk_text = (data.get("text") or data.get("chunk") or "").strip()
+            if not chunk_text and len(response_items) == 1:
+                chunk_text = document.strip()
+            if not chunk_text:
                 continue
             chunks.append({
-                "text": data.get("text", ""),
+                "text": chunk_text,
                 "embedding": data.get("embedding", []),
                 "index": data.get("index", 0),
             })
         return chunks
+
+    def embed_query(self, query: str) -> list[float]:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": self.model,
+            "input": query,
+            "pooling_strategy": self.pooling,
+        }
+        response = requests.post(
+            f"{self.api_base}/embeddings",
+            headers=headers,
+            json=payload,
+            timeout=120,
+        )
+        response.raise_for_status()
+        return response.json()["data"][0]["embedding"]
     
     def split(self, text: str, **kwargs) -> List[Dict[str, Any]]:
         chunks = self._get_embeddings(text)
         final_chunks = [item["text"] for item in sorted(chunks, key=lambda item: item["index"])]
         if not final_chunks:
-            final_chunks = [text]
+            return [{"content": text, "chunk_index": 0}]
 
-        return [
+        payloads = [
             {"content": chunk, "chunk_index": i}
             for i, chunk in enumerate(final_chunks)
         ]
+        for payload, chunk in zip(payloads, sorted(chunks, key=lambda item: item["index"])):
+            payload["embedding"] = chunk["embedding"]
+        return payloads
 ```
 
 ### 8.5 质量评估
@@ -382,21 +416,23 @@ class QualityEvaluator:
 
 1. 根据document_id获取文档内容
 2. 实例化对应的策略类
-3. 调用`split()`获取chunk列表；其中 JE 直接消费 Jina `return_chunks` 返回的语义块
-4. 为每个chunk生成embedding，并根据向量维度选择对应的`embedding_xxx`字段
-5. 记录`embedding_model`，其余未命中的向量字段保持为空
-6. 批量保存到`t_chunk`
+3. 调用 `split()` 获取 chunk 列表
+4. 如果策略已返回 embedding（JE），优先直接使用策略返回值；否则走全局 `EmbeddingService`
+5. 根据向量维度选择对应的 `embedding_xxx` 字段
+6. 记录 `embedding_model`，其余未命中的向量字段保持为空
+7. 批量保存到 `t_chunk`
 
 ### 检索流程
 
-1. 对用户查询生成embedding
-2. 根据查询向量维度选择对应的`embedding_xxx`字段
-3. 在`t_chunk`中检索（按document_id、chunk_type、embedding_model过滤，并限定同维度字段非空）
-4. 获取top_k个最相似的chunk
-5. 构建RAG提示词，调用LLM
-6. 评估回答质量（余弦相似度）
-7. 保存实验记录到`t_experiment`
-8. 输出回答和分数
+1. 为用户查询生成 embedding
+2. 如果策略提供独立 `embed_query()`（JE），优先使用该查询向量；否则走全局 `EmbeddingService`
+3. 根据查询向量维度选择对应的 `embedding_xxx` 字段
+4. 在 `t_chunk` 中检索，过滤条件包括 `document_id`、`chunk_type`、`embedding_model`，并限定同维度字段非空
+5. 获取 top_k 个最相似的 chunk
+6. 构建 RAG 提示词，调用 LLM
+7. 评估回答质量（余弦相似度）
+8. 保存实验记录到 `t_experiment`
+9. 输出回答和分数
 
 ### 数据库初始化/重建流程
 
@@ -410,13 +446,14 @@ class QualityEvaluator:
 ```text
 click==8.3.0
 sqlalchemy==2.0.25
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.11
 pgvector==0.2.5
 minio==7.2.5
 python-docx==1.1.0
 openai==2.36.0
+zai-sdk==0.2.2
 requests==2.31.0
-langchain-text-splitters==0.0.1
-numpy==1.24.3
+langchain-text-splitters==0.3.11
+numpy==2.4.4
 python-dotenv==1.0.1
 ```
