@@ -14,6 +14,9 @@ class EmbeddingService:
         response = self.client.embeddings.create(model=self.config.EMBEDDING_MODEL, input=texts)
         return [item.embedding for item in response.data]
 
+    def get_vector_dimension(self, embedding: list[float]) -> int:
+        return len(embedding)
+
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return self.embed(texts)
 

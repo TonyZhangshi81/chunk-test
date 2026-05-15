@@ -6,8 +6,8 @@ from uuid import uuid4
 import click
 
 from config import config
-from models.chunk import Chunk
-from models.database import get_session, init_db
+from models.chunk import Chunk, build_embedding_column_values, get_embedding_column_name
+from models.database import get_session, init_db, rebuild_chunk_table
 from models.document import Document
 from models.experiment import Experiment
 from repositories.chunk_repo import ChunkRepository
@@ -64,6 +64,8 @@ def _chunk_document(runtime: dict, document_id: str, chunk_type: str) -> int:
     strategy = build_strategy(chunk_type, config, runtime["embedding_service"])
     chunk_payloads = strategy.split(document.content, **_chunk_kwargs(chunk_type))
     embeddings = runtime["embedding_service"].embed([item["content"] for item in chunk_payloads])
+    if embeddings:
+        get_embedding_column_name(len(embeddings[0]))
 
     chunk_models = []
     for item, embedding in zip(chunk_payloads, embeddings):
@@ -77,7 +79,7 @@ def _chunk_document(runtime: dict, document_id: str, chunk_type: str) -> int:
                 start_position=item.get("start_pos"),
                 end_position=item.get("end_pos"),
                 embedding_model=config.EMBEDDING_MODEL,
-                embedding_vector=embedding,
+                **build_embedding_column_values(embedding),
             )
         )
     runtime["chunk_repo"].replace_for_document(document_id, chunk_type, chunk_models)
@@ -87,10 +89,19 @@ def _chunk_document(runtime: dict, document_id: str, chunk_type: str) -> int:
 def _search_document(runtime: dict, document_id: str, chunk_type: str, query: str) -> dict:
     _require_document(runtime["document_repo"], document_id)
     query_embedding = runtime["embedding_service"].embed_query(query)
-    chunks = runtime["chunk_repo"].search_similar(document_id, chunk_type, query_embedding, config.SEARCH_TOP_K)
+    chunks = runtime["chunk_repo"].search_similar(
+        document_id,
+        chunk_type,
+        config.EMBEDDING_MODEL,
+        query_embedding,
+        config.SEARCH_TOP_K,
+    )
     if not chunks:
         raise click.ClickException(
-            f"No chunks found for document_id={document_id}, chunk_type={chunk_type}. Run chunk first."
+            (
+                f"No chunks found for document_id={document_id}, chunk_type={chunk_type}, "
+                f"embedding_model={config.EMBEDDING_MODEL}. Run chunk first."
+            )
         )
 
     contexts = [chunk.content for chunk in chunks]
@@ -113,6 +124,12 @@ def _search_document(runtime: dict, document_id: str, chunk_type: str, query: st
 @click.group()
 def cli() -> None:
     pass
+
+
+@cli.command("rebuild-chunk-table")
+def rebuild_chunk_table_command() -> None:
+    rebuild_chunk_table()
+    click.echo("rebuild t_chunk completed")
 
 
 @cli.command()

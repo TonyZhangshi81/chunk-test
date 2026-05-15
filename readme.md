@@ -72,8 +72,10 @@ cp .env.example .env
 
 4. **初始化数据库**
 ```bash
-python scripts/init_db.py
+python src/main.py rebuild-chunk-table
 ```
+
+如果数据库里已经存在旧版 `t_chunk`（单列 `embedding_vector` 结构），需要先重建该表后再重新执行 chunk。
 
 ### 配置说明
 
@@ -91,11 +93,13 @@ DB_PASSWORD=your_password
 EMBEDDING_API_TYPE=openai  # openai / siliconflow
 EMBEDDING_API_KEY=your_key
 EMBEDDING_MODEL=text-embedding-ada-002
+EMBEDDING_DIMENSION=1536
 
 # Jina API (用于JE策略)
 JINA_API_KEY=jina_xxxxx
 JINA_API_BASE=https://api.jina.ai/v1
 JINA_MODEL=jina-embeddings-v2-base
+JINA_EMBEDDING_DIMENSION=768
 
 # LLM API
 LLM_API_TYPE=zhipu  # openai / zhipu / qwen / deepseek
@@ -108,6 +112,8 @@ CHUNK_OVERLAP=50
 SEARCH_TOP_K=4
 ```
 
+当前 `t_chunk` 支持以下向量槽位：`1536`、`1024`、`768`、`512`、`256`、`3072`。程序会根据实际返回向量长度写入对应字段，并在检索时只查询同维度、同模型的数据。
+
 ## 📋 使用指南
 
 ### 1. 上传文件
@@ -116,6 +122,14 @@ SEARCH_TOP_K=4
 
 ```bash
 python src/main.py upload --path ./docs/technical_paper.docx
+```
+
+### 0. 重建 Chunk 表
+
+当你从旧版单列 `embedding_vector` 结构升级时，先执行：
+
+```bash
+python src/main.py rebuild-chunk-table
 ```
 
 返回示例：
@@ -206,7 +220,14 @@ t_document (
 -- Chunk表（支持向量存储）
 t_chunk (
     id, document_id, chunk_type, content, 
-    embedding_vector(VECTOR), ...
+  embedding_model,
+  embedding_1536(VECTOR),
+  embedding_1024(VECTOR),
+  embedding_768(VECTOR),
+  embedding_512(VECTOR),
+  embedding_256(VECTOR),
+  embedding_3072(VECTOR),
+  ...
 )
 
 -- 实验记录表
@@ -231,8 +252,6 @@ chunk-test/
 │   │   └── chunk_strategies/   # 三种切分策略
 │   ├── repositories/           # 数据访问层
 │   └── utils/                  # 工具函数
-├── scripts/
-│   └── init_db.py              # 数据库初始化
 ├── tests/                      # 单元测试
 ├── .env.example                # 配置模板
 ├── requirements.txt            # 依赖清单

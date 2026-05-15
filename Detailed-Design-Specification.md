@@ -11,7 +11,7 @@
 ## 2. 技术栈
 
 | 组件 | 技术 |
-|------|------|
+| ------ | ------ |
 | 运行时 | Python 3.8+ |
 | CLI框架 | Click 8.3.0 |
 | ORM | SQLAlchemy 2.0+ |
@@ -22,7 +22,7 @@
 ## 3. 三种Chunk策略
 
 | 代码 | 名称 | 实现类 | 核心依赖 |
-|------|------|--------|---------|
+| ------ | ------ | -------- | --------- |
 | RCTS | 递归字符切分 | `RCTSStrategy` | `RecursiveCharacterTextSplitter` |
 | SC | 语义切分 | `SCStrategy` | `SemanticChunker` |
 | JE | Jina语义切分 | `JEStrategy` | Jina API (`JinaEmbeddings`) |
@@ -50,6 +50,7 @@ EMBEDDING_MODEL=text-embedding-ada-002
 EMBEDDING_API_TYPE=openai
 EMBEDDING_API_KEY=your_key
 EMBEDDING_API_BASE=https://api.openai.com/v1
+EMBEDDING_DIMENSION=1536
 
 # Jina API（用于JE策略）
 JINA_API_KEY=jina_xxxxx
@@ -103,7 +104,12 @@ CREATE TABLE t_chunk (
     start_position INTEGER,
     end_position INTEGER,
     embedding_model VARCHAR(255),
-    embedding_vector VECTOR(1536),
+    embedding_1536 VECTOR(1536),
+    embedding_1024 VECTOR(1024),
+    embedding_768 VECTOR(768),
+    embedding_512 VECTOR(512),
+    embedding_256 VECTOR(256),
+    embedding_3072 VECTOR(3072),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -122,7 +128,7 @@ CREATE TABLE t_experiment (
 
 ## 6. 目录结构
 
-```
+```text
 src/
 ├── main.py
 ├── config.py
@@ -154,6 +160,9 @@ src/
 ```bash
 # 上传文件
 python src/main.py upload --path ./doc.docx
+
+# 重建 Chunk 表
+python src/main.py rebuild-chunk-table
 
 # 执行切分
 python src/main.py chunk --doc-id <uuid> --type RCTS
@@ -408,6 +417,7 @@ class QualityEvaluator:
 ## 9. 工作流程
 
 ### 上传流程
+
 1. 读取本地文件（支持.docx和.txt）
 2. 解析为纯文本
 3. 上传至MinIO（路径：`test/{uuid}/{filename}`）
@@ -415,24 +425,35 @@ class QualityEvaluator:
 5. 返回document_id
 
 ### Chunk流程
+
 1. 根据document_id获取文档内容
 2. 实例化对应的策略类
 3. 调用`split()`获取chunk列表
-4. 为每个chunk生成embedding
-5. 批量保存到`t_chunk`
+4. 为每个chunk生成embedding，并根据向量维度选择对应的`embedding_xxx`字段
+5. 记录`embedding_model`，其余未命中的向量字段保持为空
+6. 批量保存到`t_chunk`
 
 ### 检索流程
+
 1. 对用户查询生成embedding
-2. 在`t_chunk`中检索（按document_id和chunk_type过滤）
-3. 获取top_k个最相似的chunk
-4. 构建RAG提示词，调用LLM
-5. 评估回答质量（余弦相似度）
-6. 保存实验记录到`t_experiment`
-7. 输出回答和分数
+2. 根据查询向量维度选择对应的`embedding_xxx`字段
+3. 在`t_chunk`中检索（按document_id、chunk_type、embedding_model过滤，并限定同维度字段非空）
+4. 获取top_k个最相似的chunk
+5. 构建RAG提示词，调用LLM
+6. 评估回答质量（余弦相似度）
+7. 保存实验记录到`t_experiment`
+8. 输出回答和分数
+
+### 数据库初始化/重建流程
+
+1. 连接PostgreSQL后先执行`CREATE EXTENSION IF NOT EXISTS vector`
+2. 新库初始化时通过SQLAlchemy `create_all()`创建`t_document`、`t_chunk`、`t_experiment`
+3. 如果数据库里仍是旧版单列`embedding_vector`结构，执行`python src/main.py rebuild-chunk-table`重建`t_chunk`
+4. 重建后需要重新执行chunk，旧的chunk数据不做自动迁移
 
 ## 10. requirements.txt
 
-```
+```text
 click==8.3.0
 sqlalchemy==2.0.25
 psycopg2-binary==2.9.9

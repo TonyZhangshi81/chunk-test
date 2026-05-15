@@ -11,3 +11,8 @@ pgvector/pgvector:pg16
 docker exec -it postgres psql -U tony -d myapp
 CREATE EXTENSION IF NOT EXISTS vector;
 SELECT * FROM pg_extension WHERE extname = 'vector';
+
+DROP TABLE IF EXISTS t_chunk;
+
+-- 然后在项目根目录执行
+-- python src/main.py rebuild-chunk-table

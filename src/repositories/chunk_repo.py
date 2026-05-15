@@ -1,7 +1,7 @@
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from models.chunk import Chunk
+from models.chunk import Chunk, get_embedding_column_name
 
 
 class ChunkRepository:
@@ -19,13 +19,20 @@ class ChunkRepository:
         self,
         document_id: str,
         chunk_type: str,
+        embedding_model: str,
         query_embedding: list[float],
         top_k: int,
     ) -> list[Chunk]:
+        vector_column = getattr(Chunk, get_embedding_column_name(len(query_embedding)))
         stmt = (
             select(Chunk)
-            .where(Chunk.document_id == document_id, Chunk.chunk_type == chunk_type)
-            .order_by(Chunk.embedding_vector.cosine_distance(query_embedding))
+            .where(
+                Chunk.document_id == document_id,
+                Chunk.chunk_type == chunk_type,
+                Chunk.embedding_model == embedding_model,
+                vector_column.is_not(None),
+            )
+            .order_by(vector_column.cosine_distance(query_embedding))
             .limit(top_k)
         )
         return list(self.session.execute(stmt).scalars().all())

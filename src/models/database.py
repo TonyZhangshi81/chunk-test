@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from config import config
@@ -16,4 +16,17 @@ def get_session():
 def init_db() -> None:
     from models import chunk, document, experiment  # noqa: F401
 
+    with engine.begin() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
     Base.metadata.create_all(bind=engine)
+
+
+def rebuild_chunk_table() -> None:
+    from models.chunk import Chunk
+
+    with engine.begin() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
+    Chunk.__table__.drop(bind=engine, checkfirst=True)
+    init_db()
