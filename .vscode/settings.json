@@ -1,2 +1,5 @@
 {
+  "terminal.integrated.commandsToSkipShell": [
+    "jq", "bat", "prettybat"
+  ]
 }

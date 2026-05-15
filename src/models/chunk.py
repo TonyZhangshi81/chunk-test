@@ -6,6 +6,7 @@ from models.database import Base
 
 
 EMBEDDING_COLUMN_BY_DIMENSION = {
+    2048: "embedding_2048",
     1536: "embedding_1536",
     1024: "embedding_1024",
     768: "embedding_768",
@@ -40,6 +41,7 @@ class Chunk(Base):
     start_position: Mapped[int | None] = mapped_column(Integer)
     end_position: Mapped[int | None] = mapped_column(Integer)
     embedding_model: Mapped[str | None] = mapped_column(String(255))
+    embedding_2048: Mapped[list[float] | None] = mapped_column(Vector(2048))
     embedding_1536: Mapped[list[float] | None] = mapped_column(Vector(1536))
     embedding_1024: Mapped[list[float] | None] = mapped_column(Vector(1024))
     embedding_768: Mapped[list[float] | None] = mapped_column(Vector(768))

@@ -64,6 +64,8 @@ cd chunk-test
 pip install -r requirements.txt
 ```
 
+当前仓库已验证可工作的 OpenAI Python SDK 版本为 `openai==2.36.0`，详见 [requirements.txt](requirements.txt)。
+
 3. **配置环境变量**
 ```bash
 cp .env.example .env

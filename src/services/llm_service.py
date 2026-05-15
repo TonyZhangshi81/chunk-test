@@ -6,7 +6,13 @@ from config import Config
 class LLMService:
     def __init__(self, cfg: Config):
         self.config = cfg
-        self.client = OpenAI(api_key=cfg.LLM_API_KEY, base_url=cfg.LLM_API_BASE)
+        self._client: OpenAI | None = None
+
+    @property
+    def client(self) -> OpenAI:
+        if self._client is None:
+            self._client = OpenAI(api_key=self.config.LLM_API_KEY, base_url=self.config.LLM_API_BASE)
+        return self._client
 
     def answer(self, query: str, contexts: list[str]) -> str:
         context_block = "\n\n".join(f"片段{i + 1}:\n{context}" for i, context in enumerate(contexts))

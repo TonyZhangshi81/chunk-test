@@ -460,7 +460,7 @@ psycopg2-binary==2.9.9
 pgvector==0.2.5
 minio==7.2.5
 python-docx==1.1.0
-openai==1.12.0
+openai==2.36.0
 requests==2.31.0
 langchain-text-splitters==0.0.1
 numpy==1.24.3

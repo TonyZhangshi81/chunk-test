@@ -1,16 +1,30 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 
-load_dotenv()
+def _load_env_files() -> None:
+    src_dir = Path(__file__).resolve().parent
+    for env_path in (src_dir.parent / ".env", src_dir / ".env"):
+        if env_path.exists():
+            load_dotenv(env_path, override=True)
+
+
+_load_env_files()
 
 
 def _to_bool(value: str, default: bool = False) -> bool:
     if value is None:
         return default
     return value.lower() in {"1", "true", "yes", "on"}
+
+
+def _to_optional_int(value: str | None) -> int | None:
+    if value is None or value == "":
+        return None
+    return int(value)
 
 
 @dataclass(frozen=True)
@@ -29,10 +43,11 @@ class Config:
     MINIO_PATH_PATTERN: str = os.getenv("MINIO_PATH_PATTERN", "test/{uuid}/{filename}")
 
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-ada-002")
-    EMBEDDING_API_TYPE: str = os.getenv("EMBEDDING_API_TYPE", "openai")
+    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", os.getenv("EMBEDDING_API_TYPE", "openai")).lower()
+    EMBEDDING_API_TYPE: str = os.getenv("EMBEDDING_API_TYPE", EMBEDDING_PROVIDER)
     EMBEDDING_API_KEY: str = os.getenv("EMBEDDING_API_KEY", "")
     EMBEDDING_API_BASE: str = os.getenv("EMBEDDING_API_BASE", "https://api.openai.com/v1")
-    EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "1536"))
+    EMBEDDING_DIMENSION: int | None = _to_optional_int(os.getenv("EMBEDDING_DIMENSION"))
 
     JINA_API_KEY: str = os.getenv("JINA_API_KEY", "")
     JINA_API_BASE: str = os.getenv("JINA_API_BASE", "https://api.jina.ai/v1")
