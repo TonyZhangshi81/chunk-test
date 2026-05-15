@@ -25,7 +25,7 @@
 | ------ | ------ | -------- | --------- |
 | RCTS | 递归字符切分 | `RCTSStrategy` | `RecursiveCharacterTextSplitter` |
 | SC | 语义切分 | `SCStrategy` | `SemanticChunker` |
-| JE | Jina语义切分 | `JEStrategy` | Jina API (`JinaEmbeddings`) |
+| JE | Jina后置切分 | `JEStrategy` | Jina API `return_chunks` |
 
 ## 4. 环境变量配置（.env）
 
@@ -58,6 +58,7 @@ JINA_API_BASE=https://api.jina.ai/v1
 JINA_MODEL=jina-embeddings-v2-base
 JINA_EMBEDDING_DIMENSION=768
 JINA_POOLING_STRATEGY=mean
+JINA_CHUNK_TYPE=paragraph
 
 # LLM
 LLM_API_TYPE=zhipu
@@ -267,105 +268,58 @@ class SCStrategy(BaseChunkStrategy):
 
 ```python
 import requests
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 class JEStrategy(BaseChunkStrategy):
     
     def __init__(self, config):
         self.api_key = config.JINA_API_KEY
-        self.api_base = config.JINA_API_BASE
+        self.api_base = config.JINA_API_BASE.rstrip("/")
         self.model = config.JINA_MODEL
         self.pooling = config.JINA_POOLING_STRATEGY
+        self.chunk_type = config.JINA_CHUNK_TYPE
     
     @property
     def strategy_type(self) -> str:
         return "JE"
     
-    def _get_embeddings(self, texts: list) -> list:
-        """调用Jina API获取向量"""
+    def _get_embeddings(self, document: str) -> list[dict]:
+        """调用 Jina API，直接返回语义切分后的 chunks"""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
         payload = {
             "model": self.model,
-            "input": texts,
+            "input": document,
+            "return_chunks": True,
+            "chunk_type": self.chunk_type,
             "pooling_strategy": self.pooling
         }
         response = requests.post(
             f"{self.api_base}/embeddings",
             headers=headers,
-            json=payload
+            json=payload,
+            timeout=120,
         )
         response.raise_for_status()
-        return [item["embedding"] for item in response.json()["data"]]
-    
-    def _cosine_similarity(self, a, b):
-        import numpy as np
-        a = np.array(a)
-        b = np.array(b)
-        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-    
-    def _split_sentences(self, text: str, regex: str) -> list:
-        import re
-        sentences = re.split(regex, text)
-        return [s.strip() for s in sentences if s.strip()]
+        result = response.json()
+        chunks = []
+        for data in result.get("data", []):
+            if not data.get("text", "").strip():
+                continue
+            chunks.append({
+                "text": data.get("text", ""),
+                "embedding": data.get("embedding", []),
+                "index": data.get("index", 0),
+            })
+        return chunks
     
     def split(self, text: str, **kwargs) -> List[Dict[str, Any]]:
-        chunk_size = kwargs.get('chunk_size', 500)
-        overlap = kwargs.get('overlap', 50)
-        min_size = kwargs.get('min_chunk_size', 100)
-        split_regex = kwargs.get('split_regex', r'(?<=[.。．?!？！、])|\n')
-        
-        # 1. 句子分割
-        sentences = self._split_sentences(text, split_regex)
-        
-        if len(sentences) <= 1:
-            return [{"content": text, "chunk_index": 0}]
-        
-        # 2. 获取句子向量
-        embeddings = self._get_embeddings(sentences)
-        
-        # 3. 计算相邻句子相似度，找断点
-        similarities = []
-        for i in range(len(embeddings) - 1):
-            similarities.append(self._cosine_similarity(embeddings[i], embeddings[i+1]))
-        
-        # 4. 相似度低于均值减半标准差的位置作为断点
-        import numpy as np
-        mean_sim = np.mean(similarities)
-        std_sim = np.std(similarities)
-        threshold = mean_sim - 0.5 * std_sim
-        
-        breakpoints = []
-        current_size = 0
-        for i, sim in enumerate(similarities):
-            current_size += len(sentences[i])
-            if sim < threshold and current_size >= min_size:
-                breakpoints.append(i + 1)
-                current_size = 0
-        
-        # 5. 按断点切分
-        chunks = []
-        start = 0
-        for end in sorted(set(breakpoints + [len(sentences)])):
-            if end > start:
-                chunk_text = "。".join(sentences[start:end])
-                chunks.append(chunk_text)
-                start = end
-        
-        # 6. 处理过大的chunk
-        final_chunks = []
-        for chunk in chunks:
-            if len(chunk) > chunk_size:
-                splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=chunk_size,
-                    chunk_overlap=overlap
-                )
-                final_chunks.extend(splitter.split_text(chunk))
-            else:
-                final_chunks.append(chunk)
-        
+        chunks = self._get_embeddings(text)
+        final_chunks = [item["text"] for item in sorted(chunks, key=lambda item: item["index"])]
+        if not final_chunks:
+            final_chunks = [text]
+
         return [
             {"content": chunk, "chunk_index": i}
             for i, chunk in enumerate(final_chunks)
@@ -428,7 +382,7 @@ class QualityEvaluator:
 
 1. 根据document_id获取文档内容
 2. 实例化对应的策略类
-3. 调用`split()`获取chunk列表
+3. 调用`split()`获取chunk列表；其中 JE 直接消费 Jina `return_chunks` 返回的语义块
 4. 为每个chunk生成embedding，并根据向量维度选择对应的`embedding_xxx`字段
 5. 记录`embedding_model`，其余未命中的向量字段保持为空
 6. 批量保存到`t_chunk`

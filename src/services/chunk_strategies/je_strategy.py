@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import re
 from typing import Any
 
-import numpy as np
 import requests
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from services.chunk_strategies.base import BaseChunkStrategy
-from services.chunk_strategies.rcts_strategy import _build_chunk_payloads
+from services.chunk_strategies.payloads import build_chunk_payloads
 
 
 class JEStrategy(BaseChunkStrategy):
@@ -17,82 +14,83 @@ class JEStrategy(BaseChunkStrategy):
         self.api_base = cfg.JINA_API_BASE.rstrip("/")
         self.model = cfg.JINA_MODEL
         self.pooling = cfg.JINA_POOLING_STRATEGY
+        self.chunk_type = cfg.JINA_CHUNK_TYPE
 
     @property
     def strategy_type(self) -> str:
         return "JE"
 
-    def _get_embeddings(self, texts: list[str]) -> list[list[float]]:
+    @property
+    def embedding_model(self) -> str:
+        return self.model
+
+    def _get_embeddings(self, document: str) -> list[dict[str, Any]]:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
         payload = {
             "model": self.model,
-            "input": texts,
+            "input": document,
+            "return_chunks": True,
+            "chunk_type": self.chunk_type,
             "pooling_strategy": self.pooling,
         }
         response = requests.post(
             f"{self.api_base}/embeddings",
             headers=headers,
             json=payload,
-            timeout=60,
+            timeout=120,
         )
         response.raise_for_status()
-        return [item["embedding"] for item in response.json()["data"]]
+        result = response.json()
+        response_items = result.get("data", [])
+        chunks = []
+        for item in response_items:
+            chunk_text = (item.get("text") or item.get("chunk") or "").strip()
+            if not chunk_text and len(response_items) == 1:
+                chunk_text = document.strip()
+            if not chunk_text:
+                continue
+            chunks.append(
+                {
+                    "text": chunk_text,
+                    "embedding": item.get("embedding", []),
+                    "index": item.get("index", 0),
+                }
+            )
+        return chunks
 
-    def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
-        vector_a = np.array(a)
-        vector_b = np.array(b)
-        denominator = np.linalg.norm(vector_a) * np.linalg.norm(vector_b)
-        if denominator == 0:
-            return 0.0
-        return float(np.dot(vector_a, vector_b) / denominator)
-
-    def _split_sentences(self, text: str, regex: str) -> list[str]:
-        return [segment.strip() for segment in re.split(regex, text) if segment.strip()]
+    def embed_query(self, query: str) -> list[float]:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model,
+            "input": query,
+            "pooling_strategy": self.pooling,
+        }
+        response = requests.post(
+            f"{self.api_base}/embeddings",
+            headers=headers,
+            json=payload,
+            timeout=120,
+        )
+        response.raise_for_status()
+        result = response.json()
+        data = result.get("data", [])
+        if not data:
+            raise ValueError("Jina API returned empty embedding data for query")
+        return data[0].get("embedding", [])
 
     def split(self, text: str, **kwargs) -> list[dict[str, Any]]:
-        chunk_size = kwargs.get("chunk_size", 500)
-        overlap = kwargs.get("overlap", 50)
-        min_size = kwargs.get("min_chunk_size", 100)
-        split_regex = kwargs.get("split_regex", r"(?<=[.。．?!？！、])|\n")
+        chunks = sorted(self._get_embeddings(text), key=lambda item: item["index"])
+        chunk_texts = [item["text"] for item in chunks]
+        payloads = build_chunk_payloads(chunk_texts or [text], text)
+        if not chunks:
+            return payloads
 
-        sentences = self._split_sentences(text, split_regex)
-        if len(sentences) <= 1:
-            return _build_chunk_payloads([text], text)
-
-        embeddings = self._get_embeddings(sentences)
-        similarities = [
-            self._cosine_similarity(embeddings[index], embeddings[index + 1])
-            for index in range(len(embeddings) - 1)
-        ]
-        mean_similarity = float(np.mean(similarities)) if similarities else 0.0
-        std_similarity = float(np.std(similarities)) if similarities else 0.0
-        threshold = mean_similarity - 0.5 * std_similarity
-
-        breakpoints = []
-        current_size = 0
-        for index, similarity in enumerate(similarities):
-            current_size += len(sentences[index])
-            if similarity < threshold and current_size >= min_size:
-                breakpoints.append(index + 1)
-                current_size = 0
-
-        chunks = []
-        start = 0
-        for end in sorted(set(breakpoints + [len(sentences)])):
-            if end <= start:
-                continue
-            chunks.append("。".join(sentences[start:end]))
-            start = end
-
-        final_chunks = []
-        splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
-        for chunk in chunks:
-            if len(chunk) > chunk_size:
-                final_chunks.extend(splitter.split_text(chunk))
-            else:
-                final_chunks.append(chunk)
-
-        return _build_chunk_payloads(final_chunks, text)
+        for payload, chunk in zip(payloads, chunks):
+            payload["embedding"] = chunk["embedding"]
+        return payloads

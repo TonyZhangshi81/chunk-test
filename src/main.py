@@ -56,6 +56,22 @@ def _chunk_kwargs(chunk_type: str) -> dict:
     }
 
 
+def _resolve_chunk_embeddings(runtime: dict, strategy, chunk_payloads: list[dict]) -> tuple[list[list[float]], str]:
+    if chunk_payloads and all(item.get("embedding") is not None for item in chunk_payloads):
+        embeddings = [item["embedding"] for item in chunk_payloads]
+        embedding_model = getattr(strategy, "embedding_model", config.EMBEDDING_MODEL)
+        return embeddings, embedding_model
+
+    embeddings = runtime["embedding_service"].embed([item["content"] for item in chunk_payloads])
+    return embeddings, config.EMBEDDING_MODEL
+
+
+def _resolve_query_embedding(runtime: dict, strategy, query: str) -> tuple[list[float], str]:
+    if hasattr(strategy, "embed_query"):
+        return strategy.embed_query(query), getattr(strategy, "embedding_model", config.EMBEDDING_MODEL)
+    return runtime["embedding_service"].embed_query(query), config.EMBEDDING_MODEL
+
+
 def _chunk_document(runtime: dict, document_id: str, chunk_type: str) -> int:
     document = _require_document(runtime["document_repo"], document_id)
     if not document.content:
@@ -63,7 +79,7 @@ def _chunk_document(runtime: dict, document_id: str, chunk_type: str) -> int:
 
     strategy = build_strategy(chunk_type, config, runtime["embedding_service"])
     chunk_payloads = strategy.split(document.content, **_chunk_kwargs(chunk_type))
-    embeddings = runtime["embedding_service"].embed([item["content"] for item in chunk_payloads])
+    embeddings, embedding_model = _resolve_chunk_embeddings(runtime, strategy, chunk_payloads)
     if embeddings:
         get_embedding_column_name(len(embeddings[0]))
 
@@ -78,7 +94,7 @@ def _chunk_document(runtime: dict, document_id: str, chunk_type: str) -> int:
                 chunk_index=item["chunk_index"],
                 start_position=item.get("start_pos"),
                 end_position=item.get("end_pos"),
-                embedding_model=config.EMBEDDING_MODEL,
+                embedding_model=embedding_model,
                 **build_embedding_column_values(embedding),
             )
         )
@@ -88,11 +104,12 @@ def _chunk_document(runtime: dict, document_id: str, chunk_type: str) -> int:
 
 def _search_document(runtime: dict, document_id: str, chunk_type: str, query: str) -> dict:
     _require_document(runtime["document_repo"], document_id)
-    query_embedding = runtime["embedding_service"].embed_query(query)
+    strategy = build_strategy(chunk_type, config, runtime["embedding_service"])
+    query_embedding, embedding_model = _resolve_query_embedding(runtime, strategy, query)
     chunks = runtime["chunk_repo"].search_similar(
         document_id,
         chunk_type,
-        config.EMBEDDING_MODEL,
+        embedding_model,
         query_embedding,
         config.SEARCH_TOP_K,
     )
@@ -100,7 +117,7 @@ def _search_document(runtime: dict, document_id: str, chunk_type: str, query: st
         raise click.ClickException(
             (
                 f"No chunks found for document_id={document_id}, chunk_type={chunk_type}, "
-                f"embedding_model={config.EMBEDDING_MODEL}. Run chunk first."
+                f"embedding_model={embedding_model}. Run chunk first."
             )
         )
 

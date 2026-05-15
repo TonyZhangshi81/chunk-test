@@ -54,6 +54,7 @@ class Config:
     JINA_MODEL: str = os.getenv("JINA_MODEL", "jina-embeddings-v2-base")
     JINA_EMBEDDING_DIMENSION: int = int(os.getenv("JINA_EMBEDDING_DIMENSION", "768"))
     JINA_POOLING_STRATEGY: str = os.getenv("JINA_POOLING_STRATEGY", "mean")
+    JINA_CHUNK_TYPE: str = os.getenv("JINA_CHUNK_TYPE", "sentence")
 
     LLM_API_TYPE: str = os.getenv("LLM_API_TYPE", "zhipu")
     LLM_MODEL: str = os.getenv("LLM_MODEL", "glm-4")

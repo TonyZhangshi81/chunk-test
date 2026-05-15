@@ -20,7 +20,7 @@
 |------|------|----------|------|
 | **RCTS** | 递归字符切分 | `RecursiveCharacterTextSplitter` | 基础方案，固定大小窗口 |
 | **SC** | 语义切分 | `SemanticChunker` | 基于语义边界智能切分 |
-| **JE** | Jina语义切分 | Jina AI API + 语义相似度 | 结合Jina Embedding的语义切分 |
+| **JE** | Jina后置切分 | Jina AI `return_chunks` API | 直接使用 Jina 返回的语义块，独立于 RCTS/SC |
 
 ## 🏗️ 系统架构
 
@@ -102,6 +102,8 @@ JINA_API_KEY=jina_xxxxx
 JINA_API_BASE=https://api.jina.ai/v1
 JINA_MODEL=jina-embeddings-v2-base
 JINA_EMBEDDING_DIMENSION=768
+JINA_POOLING_STRATEGY=mean
+JINA_CHUNK_TYPE=paragraph
 
 # LLM API
 LLM_API_TYPE=zhipu  # openai / zhipu / qwen / deepseek
@@ -152,7 +154,7 @@ python src/main.py chunk --doc-id <uuid> --type RCTS
 # 语义切分
 python src/main.py chunk --doc-id <uuid> --type SC
 
-# Jina语义切分
+# Jina 后置切分（直接使用 Jina 返回的 chunks）
 python src/main.py chunk --doc-id <uuid> --type JE
 ```
 

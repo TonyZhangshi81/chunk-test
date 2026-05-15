@@ -11,7 +11,7 @@ except ImportError:
     SemanticChunker = None
 
 from services.chunk_strategies.base import BaseChunkStrategy
-from services.chunk_strategies.rcts_strategy import _build_chunk_payloads
+from services.chunk_strategies.payloads import build_chunk_payloads
 
 
 class SCStrategy(BaseChunkStrategy):
@@ -34,11 +34,11 @@ class SCStrategy(BaseChunkStrategy):
                 min_chunk_size=min_size,
             )
             chunks = splitter.split_text(text)
-            return _build_chunk_payloads(chunks, text)
+            return build_chunk_payloads(chunks, text)
 
         sentences = [part.strip() for part in re.split(split_regex, text) if part.strip()]
         if len(sentences) <= 1:
-            return _build_chunk_payloads([text], text)
+            return build_chunk_payloads([text], text)
 
         embeddings = self.embedding_service.embed_documents(sentences)
         similarities = [
@@ -61,7 +61,7 @@ class SCStrategy(BaseChunkStrategy):
                 current_parts = []
                 current_length = 0
 
-        return _build_chunk_payloads(chunks, text)
+        return build_chunk_payloads(chunks, text)
 
     def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
         vector_a = np.array(a)
