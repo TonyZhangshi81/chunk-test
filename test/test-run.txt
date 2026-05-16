@@ -1,0 +1,30 @@
+﻿
+Push-Location src;
+
+
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test-01-pronoun.docx
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_02_ellipsis.docx
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_03_cross_paragraph.docx
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_04_negation.docx
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_05_multi_hop.docx
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_06_long_distance.docx
+
+
+6eab89a9-b057-4de5-8007-85e8ee9a48af -> test-01-pronoun.docx
+..\.venv\Scripts\python.exe main.py chunk --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type RCTS;
+..\.venv\Scripts\python.exe main.py chunk --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type SC;
+..\.venv\Scripts\python.exe main.py chunk --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type JE;
+
+
+QA:谁被任命为首席架构师？
+..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type RCTS --query 谁被任命为首席架构师？;
+..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type SC --query 谁被任命为首席架构师？;
+..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type JE --query 谁被任命为首席架构师？;
+
+QA:谁的团队完成下一代AI平台的研发
+..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type RCTS --query 谁的团队完成下一代AI平台的研发;
+..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type SC --query 谁的团队完成下一代AI平台的研发;
+..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type JE --query 谁的团队完成下一代AI平台的研发;
+
+Pop-Location
+

@@ -68,6 +68,8 @@ class Config:
     CHUNK_SC_BREAKPOINT_TYPE: str = os.getenv("CHUNK_SC_BREAKPOINT_TYPE", "percentile")
     CHUNK_SC_SPLIT_REGEX: str = os.getenv("CHUNK_SC_SPLIT_REGEX", r"(?<=[.。．?!？！、])|\n")
     CHUNK_JE_MIN_SIZE: int = int(os.getenv("CHUNK_JE_MIN_SIZE", "100"))
+    JINA_MAX_CHUNK_LENGTH: int = int(os.getenv("JINA_MAX_CHUNK_LENGTH", "50"))
+    JINA_TASK: str = os.getenv("JINA_TASK", "retrieval.passage")
 
     SEARCH_TOP_K: int = int(os.getenv("SEARCH_TOP_K", "4"))
 

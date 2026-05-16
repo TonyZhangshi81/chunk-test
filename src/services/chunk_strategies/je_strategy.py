@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import requests
@@ -15,6 +16,10 @@ class JEStrategy(BaseChunkStrategy):
         self.model = cfg.JINA_MODEL
         self.pooling = cfg.JINA_POOLING_STRATEGY
         self.chunk_type = cfg.JINA_CHUNK_TYPE
+        self.max_chunk_length = cfg.JINA_MAX_CHUNK_LENGTH
+        self.task = cfg.JINA_TASK
+        self.dimensions = cfg.JINA_EMBEDDING_DIMENSION
+        
 
     @property
     def strategy_type(self) -> str:
@@ -24,17 +29,21 @@ class JEStrategy(BaseChunkStrategy):
     def embedding_model(self) -> str:
         return self.model
 
-    def _get_embeddings(self, document: str) -> list[dict[str, Any]]:
+    def _get_embeddings(self, texts: list[str]) -> list[dict[str, Any]]:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
         payload = {
             "model": self.model,
-            "input": document,
+            "input": texts,
+            "dimensions": self.dimensions,
+            "late_chunking": True,
+            "task": self.task,
             "return_chunks": True,
             "chunk_type": self.chunk_type,
             "pooling_strategy": self.pooling,
+            "max_chunk_length": self.max_chunk_length,
         }
         response = requests.post(
             f"{self.api_base}/embeddings",
@@ -45,16 +54,14 @@ class JEStrategy(BaseChunkStrategy):
         response.raise_for_status()
         result = response.json()
         response_items = result.get("data", [])
+        print(f"Jina API returned {len(response_items)} chunks for the document.")
         chunks = []
-        for item in response_items:
-            chunk_text = (item.get("text") or item.get("chunk") or "").strip()
-            if not chunk_text and len(response_items) == 1:
-                chunk_text = document.strip()
-            if not chunk_text:
+        for index, item in enumerate(response_items):
+            if index >= len(texts):
                 continue
             chunks.append(
                 {
-                    "text": chunk_text,
+                    "text": texts[index],
                     "embedding": item.get("embedding", []),
                     "index": item.get("index", 0),
                 }
@@ -83,10 +90,17 @@ class JEStrategy(BaseChunkStrategy):
         if not data:
             raise ValueError("Jina API returned empty embedding data for query")
         return data[0].get("embedding", [])
+    
+    def _split_sentences(self, text: str, regex: str) -> list[str]:
+        return [segment.strip() for segment in re.split(regex, text) if segment.strip()]
 
     def split(self, text: str, **kwargs) -> list[dict[str, Any]]:
-        chunks = sorted(self._get_embeddings(text), key=lambda item: item["index"])
+        split_regex = r"\n"
+        sentences = self._split_sentences(text, split_regex)
+
+        chunks = sorted(self._get_embeddings(sentences), key=lambda item: item["index"])
         chunk_texts = [item["text"] for item in chunks]
+        print(f"JE Strategy split text into {len(chunk_texts)} chunks.")
         payloads = build_chunk_payloads(chunk_texts or [text], text)
         if not chunks:
             return payloads
