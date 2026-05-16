@@ -58,7 +58,7 @@ pip install -r requirements.txt
 
 1. 创建环境变量文件。
 
-程序会按顺序加载仓库根目录 `.env` 和 [src/.env](src/.env)，后加载的值会覆盖前者。仓库当前没有提供 `.env.example` 模板文件，请直接创建其中一个。
+程序会按顺序加载仓库根目录 `.env` 和 [src/.env](src/.env)，后加载的值会覆盖前者。建议优先使用 [src/.env](src/.env) 管理本地实验配置，并确保该文件不要提交到远程仓库。
 
 1. 初始化数据库。
 
@@ -70,20 +70,20 @@ python src/main.py rebuild-chunk-table
 
 ## 配置说明
 
-示例配置如下。
+示例配置如下。下面的值按当前 [src/.env](src/.env) 支持的字段整理，所有密钥均使用占位符。
 
 ```dotenv
 # 数据库
 DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=rag_experiment
-DB_USER=postgres
-DB_PASSWORD=your_password
+DB_PORT=15432
+DB_NAME=myapp
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
 
 # MinIO
-MINIO_ENDPOINT=localhost:9000
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+MINIO_ENDPOINT=localhost:19090
+MINIO_ACCESS_KEY=your_minio_access_key
+MINIO_SECRET_KEY=your_minio_secret_key
 MINIO_BUCKET=rag-chunks
 MINIO_SECURE=False
 MINIO_PATH_PATTERN=test/{uuid}/{filename}
@@ -99,10 +99,12 @@ EMBEDDING_DIMENSION=1024
 # Jina（用于 JE）
 JINA_API_KEY=jina_xxxxx
 JINA_API_BASE=https://api.jina.ai/v1
-JINA_MODEL=jina-embeddings-v2-base-zh
-JINA_EMBEDDING_DIMENSION=768
+JINA_MODEL=jina-embeddings-v3
+JINA_EMBEDDING_DIMENSION=1024
 JINA_POOLING_STRATEGY=mean
-JINA_CHUNK_TYPE=paragraph
+JINA_CHUNK_TYPE=sentence
+JINA_TASK=retrieval.passage
+JINA_MAX_CHUNK_LENGTH=10
 
 # LLM
 LLM_API_TYPE=Qwen
@@ -112,16 +114,23 @@ LLM_API_BASE=https://api.siliconflow.cn/v1
 LLM_TEMPERATURE=0.7
 
 # Chunk
-CHUNK_SIZE=500
-CHUNK_OVERLAP=50
-CHUNK_SC_MIN_SIZE=100
+CHUNK_SIZE=50
+CHUNK_OVERLAP=10
+CHUNK_SC_MIN_SIZE=20
 CHUNK_SC_BREAKPOINT_TYPE=percentile
 CHUNK_SC_SPLIT_REGEX=(?<=[.。．?!？！、])|\n
-CHUNK_JE_MIN_SIZE=100
+CHUNK_JE_MIN_SIZE=20
 
 # Search
 SEARCH_TOP_K=4
 ```
+
+JE 相关配置说明：
+
+- `JINA_CHUNK_TYPE` 支持 `paragraph`、`sentence`、`hybrid`、`passage`。
+- `JINA_TASK` 当前默认用于检索场景，可设置为 `retrieval.passage`。
+- `JINA_MAX_CHUNK_LENGTH` 用于约束 Jina 返回 chunk 的最大长度。
+- `JINA_EMBEDDING_DIMENSION` 需要与所选 Jina 模型输出维度一致。
 
 ## 向量存储说明
 
