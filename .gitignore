@@ -11,3 +11,6 @@ src/repositories/__pycache__/
 src/services/__pycache__/
 src/services/chunk_strategies/__pycache__/
 src/utils/__pycache__/
+
+.env
+src/.env
