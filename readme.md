@@ -58,7 +58,7 @@ pip install -r requirements.txt
 
 1. 创建环境变量文件。
 
-程序会按顺序加载仓库根目录 `.env` 和 [src/.env](src/.env)，后加载的值会覆盖前者。建议优先使用 [src/.env](src/.env) 管理本地实验配置，并确保该文件不要提交到远程仓库。
+程序会按顺序加载仓库根目录 `.env` 和 [src/.env](src/.env)，后加载的值会覆盖前者。建议优先复制 [src/.env.example](src/.env.example) 为 [src/.env](src/.env) 后再填写本地配置，并确保 [src/.env](src/.env) 不要提交到远程仓库。
 
 1. 初始化数据库。
 
@@ -70,7 +70,7 @@ python src/main.py rebuild-chunk-table
 
 ## 配置说明
 
-示例配置如下。下面的值按当前 [src/.env](src/.env) 支持的字段整理，所有密钥均使用占位符。
+示例配置如下。下面的值按当前 [src/.env.example](src/.env.example) 支持的字段整理，所有密钥均使用占位符。
 
 ```dotenv
 # 数据库
@@ -123,6 +123,9 @@ CHUNK_JE_MIN_SIZE=20
 
 # Search
 SEARCH_TOP_K=4
+
+# Logging
+LOG_LEVEL=INFO
 ```
 
 JE 相关配置说明：
@@ -131,6 +134,7 @@ JE 相关配置说明：
 - `JINA_TASK` 当前默认用于检索场景，可设置为 `retrieval.passage`。
 - `JINA_MAX_CHUNK_LENGTH` 用于约束 Jina 返回 chunk 的最大长度。
 - `JINA_EMBEDDING_DIMENSION` 需要与所选 Jina 模型输出维度一致。
+- `LOG_LEVEL` 用于控制 CLI 日志输出级别，默认值为 `INFO`，调试时可改为 `DEBUG`。
 
 ## 向量存储说明
 

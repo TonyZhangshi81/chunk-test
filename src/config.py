@@ -6,9 +6,11 @@ from dotenv import load_dotenv
 
 
 def _load_env_files() -> None:
+    """按顺序加载根目录和 src 下的 .env，后者优先级更高。"""
     src_dir = Path(__file__).resolve().parent
     for env_path in (src_dir.parent / ".env", src_dir / ".env"):
         if env_path.exists():
+            # override=True 确保 src/.env 能覆盖根目录配置，方便本地实验调参。
             load_dotenv(env_path, override=True)
 
 
@@ -29,6 +31,9 @@ def _to_optional_int(value: str | None) -> int | None:
 
 @dataclass(frozen=True)
 class Config:
+    """集中管理所有从环境变量读取的运行时配置。"""
+
+    # 数据库与对象存储配置会被所有 CLI 命令共享。
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
     DB_NAME: str = os.getenv("DB_NAME", "rag_experiment")
@@ -72,9 +77,11 @@ class Config:
     JINA_TASK: str = os.getenv("JINA_TASK", "retrieval.passage")
 
     SEARCH_TOP_K: int = int(os.getenv("SEARCH_TOP_K", "4"))
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
     @property
     def database_url(self) -> str:
+        """构造供 SQLAlchemy 使用的 PostgreSQL 连接串。"""
         return (
             f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"

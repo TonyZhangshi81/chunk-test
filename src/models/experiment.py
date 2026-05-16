@@ -1,3 +1,5 @@
+"""保存检索结果与评分的实验 ORM 模型。"""
+
 from sqlalchemy import DateTime, Float, ForeignKey, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -5,6 +7,8 @@ from models.database import Base
 
 
 class Experiment(Base):
+    """持久化一次查询运行结果，包含答案、上下文与相似度得分。"""
+
     __tablename__ = "t_experiment"
 
     id: Mapped[str] = mapped_column(primary_key=True)

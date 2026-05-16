@@ -1,3 +1,5 @@
+"""上传文档及其解析文本的 ORM 模型。"""
+
 from sqlalchemy import BigInteger, DateTime, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -5,6 +7,8 @@ from models.database import Base
 
 
 class Document(Base):
+    """持久化的源文档，包含文件元数据与解析后正文。"""
+
     __tablename__ = "t_document"
 
     id: Mapped[str] = mapped_column(primary_key=True)
