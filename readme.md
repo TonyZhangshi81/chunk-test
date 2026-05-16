@@ -12,6 +12,8 @@
 
 当前实现中，RCTS 和 SC 使用统一的全局 embedding 配置，JE 使用独立的 Jina embedding 管线。三种策略共享同一套文档、存储、检索、LLM 和评分流程。
 
+如果你需要快速了解代码结构与主流程，可先阅读 [doc/开发者导读.md](doc/%E5%BC%80%E5%8F%91%E8%80%85%E5%AF%BC%E8%AF%BB.md)。
+
 ## 支持的切分策略
 
 | 策略 | 名称 | 实现方式 | embedding 来源 | 说明 |
