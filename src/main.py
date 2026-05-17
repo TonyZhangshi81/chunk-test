@@ -289,5 +289,5 @@ def compare(doc_id: str, query: str) -> None:
 
 
 if __name__ == "__main__":
-    setup_logging(config.LOG_LEVEL)
+    setup_logging(config.LOG_LEVEL, config.log_file_path)
     cli()

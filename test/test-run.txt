@@ -1,20 +1,15 @@
 ﻿
 Push-Location src;
 
+测试1：test-01-pronoun.docx
+核心测试点 -> 代词消解（他/她/它）
 
 ..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test-01-pronoun.docx
-..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_02_ellipsis.docx
-..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_03_cross_paragraph.docx
-..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_04_negation.docx
-..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_05_multi_hop.docx
-..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_06_long_distance.docx
-
 
 6eab89a9-b057-4de5-8007-85e8ee9a48af -> test-01-pronoun.docx
 ..\.venv\Scripts\python.exe main.py chunk --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type RCTS;
 ..\.venv\Scripts\python.exe main.py chunk --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type SC;
 ..\.venv\Scripts\python.exe main.py chunk --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type JE;
-
 
 QA:谁被任命为首席架构师？
 ..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type RCTS --query 谁被任命为首席架构师？;
@@ -26,5 +21,144 @@ QA:谁的团队完成下一代AI平台的研发
 ..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type SC --query 谁的团队完成下一代AI平台的研发;
 ..\.venv\Scripts\python.exe main.py search --doc-id 6eab89a9-b057-4de5-8007-85e8ee9a48af --type JE --query 谁的团队完成下一代AI平台的研发;
 
+
+测试2：test_02_ellipsis.docx
+核心测试点 -> 省略主语
+
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_02_ellipsis.docx
+
+bb87efb7-628a-4104-a352-54dfe7d33786 -> test_02_ellipsis.docx
+
+..\.venv\Scripts\python.exe main.py chunk --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type RCTS;
+..\.venv\Scripts\python.exe main.py chunk --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type SC;
+..\.venv\Scripts\python.exe main.py chunk --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type JE;
+
+QA:谁主导了servo和tikv的重构工作？
+..\.venv\Scripts\python.exe main.py search --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type RCTS --query 谁主导了servo和tikv的重构工作;
+..\.venv\Scripts\python.exe main.py search --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type SC --query 谁主导了servo和tikv的重构工作;
+..\.venv\Scripts\python.exe main.py search --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type JE --query 谁主导了servo和tikv的重构工作;
+
+QA:谁做了主题演讲
+..\.venv\Scripts\python.exe main.py search --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type RCTS --query 谁做了主题演讲;
+..\.venv\Scripts\python.exe main.py search --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type SC --query 谁做了主题演讲;
+..\.venv\Scripts\python.exe main.py search --doc-id bb87efb7-628a-4104-a352-54dfe7d33786 --type JE --query 谁做了主题演讲;
+
+
+测试3：test_03_cross_paragraph.docx
+核心测试点 -> 跨段落指代
+
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_03_cross_paragraph.docx
+
+46ee78c9-9e4c-4dcc-837a-512271c94916 -> test_03_cross_paragraph.docx
+
+..\.venv\Scripts\python.exe main.py chunk --doc-id 46ee78c9-9e4c-4dcc-837a-512271c94916 --type RCTS;
+..\.venv\Scripts\python.exe main.py chunk --doc-id 46ee78c9-9e4c-4dcc-837a-512271c94916 --type SC;
+..\.venv\Scripts\python.exe main.py chunk --doc-id 46ee78c9-9e4c-4dcc-837a-512271c94916 --type JE;
+
+QA:Watch 5的产品经理是谁？
+..\.venv\Scripts\python.exe main.py search --doc-id 46ee78c9-9e4c-4dcc-837a-512271c94916 --type RCTS --query "Watch 5的产品经理是谁";
+..\.venv\Scripts\python.exe main.py search --doc-id 46ee78c9-9e4c-4dcc-837a-512271c94916 --type SC --query "Watch 5的产品经理是谁";
+..\.venv\Scripts\python.exe main.py search --doc-id 46ee78c9-9e4c-4dcc-837a-512271c94916 --type JE --query "Watch 5的产品经理是谁";
+
+
+测试4：test_04_negation.docx
+核心测试点 -> 否定范围判断
+
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_04_negation.docx
+
+dc535fbc-078d-4fbb-964c-bbf44f276571 -> test_03_cross_paragraph.docx
+
+..\.venv\Scripts\python.exe main.py chunk --doc-id dc535fbc-078d-4fbb-964c-bbf44f276571 --type RCTS;
+..\.venv\Scripts\python.exe main.py chunk --doc-id dc535fbc-078d-4fbb-964c-bbf44f276571 --type SC;
+..\.venv\Scripts\python.exe main.py chunk --doc-id dc535fbc-078d-4fbb-964c-bbf44f276571 --type JE;
+
+QA:普通投资者应该购买国债吗？
+..\.venv\Scripts\python.exe main.py search --doc-id dc535fbc-078d-4fbb-964c-bbf44f276571 --type RCTS --query 普通投资者应该购买国债吗;
+..\.venv\Scripts\python.exe main.py search --doc-id dc535fbc-078d-4fbb-964c-bbf44f276571 --type SC --query 普通投资者应该购买国债吗;
+..\.venv\Scripts\python.exe main.py search --doc-id dc535fbc-078d-4fbb-964c-bbf44f276571 --type JE --query 普通投资者应该购买国债吗;
+
+
+测试5：test_05_multi_hop.docx
+核心测试点 -> 多跳推理
+
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_05_multi_hop.docx
+
+e60a747d-4898-47ff-a27e-ead53aca4e73 -> test_05_multi_hop.docx
+
+..\.venv\Scripts\python.exe main.py chunk --doc-id e60a747d-4898-47ff-a27e-ead53aca4e73 --type RCTS;
+..\.venv\Scripts\python.exe main.py chunk --doc-id e60a747d-4898-47ff-a27e-ead53aca4e73 --type SC;
+..\.venv\Scripts\python.exe main.py chunk --doc-id e60a747d-4898-47ff-a27e-ead53aca4e73 --type JE;
+
+QA:谁将顶替红队队长参加下一场比赛？
+..\.venv\Scripts\python.exe main.py search --doc-id e60a747d-4898-47ff-a27e-ead53aca4e73 --type RCTS --query 谁将顶替红队队长参加下一场比赛;
+..\.venv\Scripts\python.exe main.py search --doc-id e60a747d-4898-47ff-a27e-ead53aca4e73 --type SC --query 谁将顶替红队队长参加下一场比赛;
+..\.venv\Scripts\python.exe main.py search --doc-id e60a747d-4898-47ff-a27e-ead53aca4e73 --type JE --query 谁将顶替红队队长参加下一场比赛;
+
+
+测试6：test_06_long_distance.docx
+核心测试点 -> 长距离依赖
+
+..\.venv\Scripts\python.exe main.py upload --path ..\test\doc\test_06_long_distance.docx
+
+2ccb508e-9b15-44fd-93c8-aaeaae8d7d19 -> test_06_long_distance.docx
+
+..\.venv\Scripts\python.exe main.py chunk --doc-id 2ccb508e-9b15-44fd-93c8-aaeaae8d7d19 --type RCTS;
+..\.venv\Scripts\python.exe main.py chunk --doc-id 2ccb508e-9b15-44fd-93c8-aaeaae8d7d19 --type SC;
+..\.venv\Scripts\python.exe main.py chunk --doc-id 2ccb508e-9b15-44fd-93c8-aaeaae8d7d19 --type JE;
+
+QA:跨模态自适应注意力的代码地址是什么？
+..\.venv\Scripts\python.exe main.py search --doc-id 2ccb508e-9b15-44fd-93c8-aaeaae8d7d19 --type RCTS --query 跨模态自适应注意力的代码地址是什么;
+..\.venv\Scripts\python.exe main.py search --doc-id 2ccb508e-9b15-44fd-93c8-aaeaae8d7d19 --type SC --query 跨模态自适应注意力的代码地址是什么;
+..\.venv\Scripts\python.exe main.py search --doc-id 2ccb508e-9b15-44fd-93c8-aaeaae8d7d19 --type JE --query 跨模态自适应注意力的代码地址是什么;
+
+
 Pop-Location
 
+
+
+
+..\.venv\Scripts\python.exe main.py upload --path ..\test\txt\test_07_a.txt
+870fe370-8af5-4bfe-8805-4f2f5c9784a8 -> test_07_a.txt
+..\.venv\Scripts\python.exe main.py chunk --doc-id 870fe370-8af5-4bfe-8805-4f2f5c9784a8 --type RCTS;
+QA:那声音是怎么传来的？
+..\.venv\Scripts\python.exe main.py search --doc-id 870fe370-8af5-4bfe-8805-4f2f5c9784a8 --type RCTS --query 那声音是怎么传来的？;
+
+
+【有效验证】
+..\.venv\Scripts\python.exe main.py upload --path ..\test\txt\test_01.txt
+
+0d476c8d-084a-4be6-ac2e-f2c0cd92c50c -> test_01.txt
+
+QA:那人是怎么伪装成老杨，又是怎么暴露的？
+
+..\.venv\Scripts\python.exe main.py chunk --doc-id 0d476c8d-084a-4be6-ac2e-f2c0cd92c50c --type RCTS;
+..\.venv\Scripts\python.exe main.py search --doc-id 0d476c8d-084a-4be6-ac2e-f2c0cd92c50c --type RCTS --query 那人是怎么伪装成老杨，又是怎么暴露的？;
+
+..\.venv\Scripts\python.exe main.py chunk --doc-id 0d476c8d-084a-4be6-ac2e-f2c0cd92c50c --type SC;
+..\.venv\Scripts\python.exe main.py search --doc-id 0d476c8d-084a-4be6-ac2e-f2c0cd92c50c --type SC --query 那人是怎么伪装成老杨，又是怎么暴露的？;
+
+..\.venv\Scripts\python.exe main.py chunk --doc-id 0d476c8d-084a-4be6-ac2e-f2c0cd92c50c --type JE;
+..\.venv\Scripts\python.exe main.py search --doc-id 0d476c8d-084a-4be6-ac2e-f2c0cd92c50c --type JE --query 那人是怎么伪装成老杨，又是怎么暴露的？;
+
+
+分析与预测：
+建议你直接用这段单段叙事，不要加换行：
+
+“夜里十一点，周岚独自守在南平码头的钟表店。傍晚收铺时，老杨把灰外套忘在椅背上，右袖还蹭着一条新鲜机油印，他下楼时照旧拖着受过伤的左腿。半小时后，后门忽然响了两下，一个披着那件灰外套的人闪进屋里。那人低头避开灯光，用左手去拧柜台上的铜钥匙，脚步却轻快得没有一点跛意，鞋底也只有木屑，没有雨夜巷口常见的泥水。周岚没出声，只看见那人袖口干净平整，和老杨外套上原本裂开的线头对不上。她想起晚饭前阿栖借走过仓库通道的门牌，还笑说自己左手拿细钥匙更稳。等那人转身时，衣领里露出一截蓝色围巾，正是阿栖白天系过的那条。”
+
+这段文本适合做测试，因为它的关键答案被拆成了多组分散线索：
+
+老杨的特征：右袖有机油印，左腿有伤，走路会跛。
+入侵者的特征：用左手拧钥匙，不跛，鞋底只有木屑，没有泥水。
+通道线索：阿栖提前借走过仓库通道的门牌。
+身份线索：蓝色围巾是阿栖白天戴过的。
+在你的参数下，这些线索大概率会散到 6 到 8 个 chunk 里，但搜索阶段只取 Top 3，所以最容易被难住的问题是这种“需要多证据合并，而且包含排除法”的问题：
+
+周岚是怎么判断进屋的人不是老杨，而是阿栖的？
+这是最推荐的主测试题。要答完整，至少要同时拿到“不跛”“左手拧钥匙”“老杨右袖机油印不匹配”“阿栖借过仓库通道门牌”“蓝色围巾”这几类证据。Top 3 很容易只召回其中一半，结果就会变成“因为围巾像阿栖”或者“因为他走路不像老杨”，答得不完整。
+
+那人是怎么伪装成老杨，又是怎么暴露的？
+这个问题需要同时理解“伪装手段”和“破绽来源”。检索若只命中“灰外套”和“蓝围巾”，模型会漏掉“不跛”“袖口干净”“鞋底木屑”这些关键反证。
+
+周岚为什么能判断来的人走的是仓库通道，而不是雨夜巷口？
+这个问题不靠单一句子，需要把“鞋底只有木屑、没有泥水”和“阿栖借走仓库通道门牌”拼起来。Top 3 如果只召回其中一个 chunk，回答就会偏空泛。

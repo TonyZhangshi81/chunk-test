@@ -107,7 +107,8 @@ class JEStrategy(BaseChunkStrategy):
 
     def split(self, text: str, **kwargs) -> list[dict[str, Any]]:
         """构造 chunk payload，并挂载 Jina 返回的向量。"""
-        split_regex = r"\n"
+        # split_regex = r"\n"
+        split_regex = kwargs.get("split_regex", r"(?<=[.。．?!？！、])|\n")
         # 先按换行切分，能让送入 Jina 的本地片段边界保持稳定。
         sentences = self._split_sentences(text, split_regex)
 

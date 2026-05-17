@@ -78,6 +78,8 @@ class Config:
 
     SEARCH_TOP_K: int = int(os.getenv("SEARCH_TOP_K", "4"))
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    LOG_DIR: str = os.getenv("LOG_DIR", "logs")
+    LOG_FILE_NAME: str = os.getenv("LOG_FILE_NAME", "app.log")
 
     @property
     def database_url(self) -> str:
@@ -86,6 +88,14 @@ class Config:
             f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
+
+    @property
+    def log_file_path(self) -> Path:
+        """返回日志文件路径，并允许相对路径基于项目根目录解析。"""
+        log_dir = Path(self.LOG_DIR)
+        if not log_dir.is_absolute():
+            log_dir = Path(__file__).resolve().parent.parent / log_dir
+        return log_dir / self.LOG_FILE_NAME
 
 
 config = Config()
