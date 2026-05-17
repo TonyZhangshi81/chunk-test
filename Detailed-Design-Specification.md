@@ -80,8 +80,20 @@ CHUNK_SC_SPLIT_REGEX=(?<=[.。．?!？！、])|\n
 CHUNK_JE_MIN_SIZE=100
 
 # 检索
-SEARCH_TOP_K=4
+SEARCH_TOP_K=3
+
+# 日志
+LOG_LEVEL=INFO
+LOG_DIR=logs
+LOG_FILE_NAME=app.log
 ```
+
+日志配置说明：
+
+- `LOG_LEVEL` 控制 CLI 输出级别，默认值为 `INFO`。
+- `LOG_DIR` 指定日志目录；若为相对路径，则相对于项目根目录解析。
+- `LOG_FILE_NAME` 指定日志文件名，默认值为 `app.log`。
+- 日志会同时输出到控制台和文件，程序启动时自动创建缺失目录。
 
 ## 5. 数据库表结构
 

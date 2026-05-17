@@ -124,10 +124,12 @@ CHUNK_SC_SPLIT_REGEX=(?<=[.。．?!？！、])|\n
 CHUNK_JE_MIN_SIZE=20
 
 # Search
-SEARCH_TOP_K=4
+SEARCH_TOP_K=3
 
 # Logging
 LOG_LEVEL=INFO
+LOG_DIR=logs
+LOG_FILE_NAME=app.log
 ```
 
 JE 相关配置说明：
@@ -137,6 +139,9 @@ JE 相关配置说明：
 - `JINA_MAX_CHUNK_LENGTH` 用于约束 Jina 返回 chunk 的最大长度。
 - `JINA_EMBEDDING_DIMENSION` 需要与所选 Jina 模型输出维度一致。
 - `LOG_LEVEL` 用于控制 CLI 日志输出级别，默认值为 `INFO`，调试时可改为 `DEBUG`。
+- `LOG_DIR` 用于指定日志目录；若配置为相对路径，则相对于项目根目录解析，默认写入 `logs`。
+- `LOG_FILE_NAME` 用于指定日志文件名，默认值为 `app.log`。
+- CLI 日志会同时输出到控制台和日志文件，程序启动时会自动创建缺失的日志目录。
 
 ## 向量存储说明
 
