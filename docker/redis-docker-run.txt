@@ -2,10 +2,10 @@
 # redis 镜像：
 
 docker run -d `
---name redis `
+--name myRedis `
 -p 6379:6379 `
--v C:\docker\redis_data:/data `
+-v C:\WorkProject\ai-agent\investigation\chunk-test\docker\redis_data:/data `
 redis:latest `
-redis-server --requirepass MyStrongPassword123 --appendonly yes
+redis-server --requirepass Tony19811031 --appendonly yes
 
 
