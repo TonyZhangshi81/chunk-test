@@ -67,8 +67,12 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
 
 
 class ZhipuEmbeddingProvider(BaseEmbeddingProvider):
-    """面向智谱 embedding 接口的提供方。"""
+    """面向智谱 embedding 接口的提供方。
 
+    智谱 API 限制 input 数组最大 64 条，本类内部自动分批处理。
+    """
+
+    _BATCH_SIZE = 64
     _EMBEDDING_3_DIMENSIONS = {256, 512, 1024, 2048}
 
     def __init__(self, cfg: Config):
@@ -101,15 +105,28 @@ class ZhipuEmbeddingProvider(BaseEmbeddingProvider):
             return 1024
         return self.requested_dimension
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        logger.info("Requesting embeddings from Zhipu provider text_count=%s", len(texts))
-        request: dict[str, Any] = {"model": self.model_name, "input": texts}
+    def _build_request(self, batch: list[str]) -> dict[str, Any]:
+        """构造单批次 API 请求参数。"""
+        request: dict[str, Any] = {"model": self.model_name, "input": batch}
         dimension = self.effective_dimension
         if self.model_name == "embedding-3" and dimension is not None:
-            # 当前项目里只有 embedding-3 支持由调用方指定维度。
             request["dimensions"] = dimension
-        response = self.client.embeddings.create(**request)
-        return [_extract_embedding(item) for item in _extract_response_data(response)]
+        return request
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        total = len(texts)
+        logger.info("Requesting embeddings from Zhipu provider text_count=%s batch_size=%s", total, self._BATCH_SIZE)
+        all_embeddings: list[list[float]] = []
+        batch_count = (total + self._BATCH_SIZE - 1) // self._BATCH_SIZE
+        for idx in range(0, total, self._BATCH_SIZE):
+            batch = texts[idx : idx + self._BATCH_SIZE]
+            batch_num = idx // self._BATCH_SIZE + 1
+            logger.info("Zhipu embedding batch %s/%s size=%s", batch_num, batch_count, len(batch))
+            request = self._build_request(batch)
+            response = self.client.embeddings.create(**request)
+            batch_embeddings = [_extract_embedding(item) for item in _extract_response_data(response)]
+            all_embeddings.extend(batch_embeddings)
+        return all_embeddings
 
 
 class EmbeddingService:
